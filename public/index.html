@@ -1,7 +1,100 @@
-<html>
-  <head>
-  </head>
-  <body>
-    Hello this is the main page.
-  </body>
-</html>
+<script src="./scripts/jquery-2.1.4.js"></script>
+<head>
+ <!-- Compiled and minified CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.1/css/materialize.min.css">
+
+  <!-- Compiled and minified JavaScript -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.1/js/materialize.min.js"></script>
+  <link rel="stylesheet" href="microphonepwd/microphone.min.css">
+  <script src="microphonepwd/microphone.min.js"></script>
+  <style>  
+    body{
+    background-image: url("bg.png");
+    }
+    #search{
+      margin-top: 20px;
+      font-size: 2em !important;
+    }
+    input{
+      font-size: 2em !important;
+    }
+    .container{
+      padding-top: 8%;
+    }
+    #microphone{
+      top: 50px;
+      z-index: 100 !important;
+      display: block;
+    }
+    header{
+      font-size: 2em;
+    }
+  </style>
+</head>
+<body>
+  <header class=" blue center white-text">thea</header>
+  <center><div id="microphone"></div><center>
+  <div class="container center-align">
+    <h3>Learn something</h3>
+    <input id="searchField" type="text" placeholder="What do you want to learn?"/>
+    <a id="search" class="waves-effect waves-light btn">Search it!</a>
+  </div>
+
+  <script type="text/javascript">
+    //Search functionality
+    $('#searchField').keyup(function(e){
+      if(e.keyCode == 13)
+        $('#search').trigger('click');
+    });
+
+    $("#search").click(function(){
+      phrase = $("#searchField").val();
+      console.log(phrase);
+
+      window.location.href= "/" + phrase;
+    });
+
+  </script>
+
+  <script type="text/javascript">
+  $(function(){
+    $.getJSON("/api/", function(data){
+      console.log(data);
+      data.forEach(function(linksys){
+        $('#container').append("<h4>" + linksys.phrase + "</h4>")
+        linksys.links.forEach(function(item){
+          $('#container').append("<li>" + item.link + " | " + item.votes + "</li>");
+        });
+      });
+    });
+  })
+  </script>
+</body>
+  <script>
+    var mic = new Wit.Microphone(document.getElementById("microphone"));
+    mic.onresult = function (intent, entities) {
+      var r = kv("intent", intent);
+
+      for (var k in entities) {
+        var e = entities[k];
+
+        if (!(e instanceof Array)) {
+          r += kv(k, e.value);
+        } else {
+          for (var i = 0; i < e.length; i++) {
+            r += kv(k, e[i].value);
+          }
+        }
+      }
+      r = r.split("=")[1]
+      console.log(r);
+      $("#searchField").val(r);
+    };
+    mic.connect("K72NSVMT6667I7Y5CCWOTRGQJTHNEQ7U");
+    function kv (k, v) {
+      if (toString.call(v) !== "[object String]") {
+        v = JSON.stringify(v);
+      }
+      return k + "=" + v + "\n";
+    }
+  </script>
