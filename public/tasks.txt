@@ -1,0 +1,2 @@
+- populate db with phrases & links
+- ajax calls

@@ -1,0 +1,160 @@
+<script src="./scripts/jquery-2.1.4.js"></script>
+<head>
+  <link rel="stylesheet" href="microphonepwd/microphone.min.css">
+  <style type="text/css">
+  *{
+    font-size: 18px;
+    font-family: arial;
+    margin: 10px;
+  }
+  h1{
+    margin-top: 50px;
+  }
+  h4{
+    line-height: 1em;
+  }
+  input, button{
+    padding: 10px;
+  }
+  #searchField{
+    width: 800px;
+  }
+  </style>
+</head>
+<body>
+  <center><div id="microphone"></div></center>
+  <script src="microphonepwd/microphone.min.js"></script>
+  <script>
+    var mic = new Wit.Microphone(document.getElementById("microphone"));
+    mic.onresult = function (intent, entities) {
+      var r = kv("intent", intent);
+
+      for (var k in entities) {
+        var e = entities[k];
+
+        if (!(e instanceof Array)) {
+          r += kv(k, e.value);
+        } else {
+          for (var i = 0; i < e.length; i++) {
+            r += kv(k, e[i].value);
+          }
+        }
+      }
+      r = r.split("=")[1]
+      $("#searchField").val(r);
+    };
+    mic.connect("K72NSVMT6667I7Y5CCWOTRGQJTHNEQ7U");
+    function kv (k, v) {
+      if (toString.call(v) !== "[object String]") {
+        v = JSON.stringify(v);
+      }
+      return k + "=" + v + "\n";
+    }
+  </script>
+  <h1>Tools Page</h1>
+
+  <h3>Add a new phrase and a link</h3>
+  <input type="text" id="newPhrase" onclick="select()" placeholder="phrase here"/>
+  <input id="newLink" type="text" placeholder="link goes here"/>
+  <button id="add">Add to database</button>
+
+  <h3>Search by Phrase</h3>
+  <input id="searchField" type="text" placeholder="phrase here"/>
+  <button id="search">Find links</button>
+
+  <h3>Give votes to a link</h3>
+  <input type="text" id="votePhrase" placeholder="phrase here"/>
+  <input id="voteLink" type="text" placeholder="link here"/>
+  <input id="vote" type="number" placeholder="how many votes?"/>
+  <button id="inc">Give votes</button>
+
+  <script type="text/javascript">
+    //Search functionality
+    $('#searchField').keyup(function(e){
+      if(e.keyCode == 13)
+        $('#search').trigger('click');
+    });
+
+    $("#search").click(function(){
+      phrase = $("#searchField").val();
+      console.log(phrase);
+
+      $.getJSON("/api/" + phrase, function(data){
+        linksArray = [];
+        data[0].links.forEach(function(item){
+            linksArray.push(item.link);
+        });
+
+        if(data[0].targetCode.length > 0){  //Call Target API
+          var tcin = data[0].targetCode;
+          postURL = "https://api.target.com/items/v3/?product_id=" + tcin + "&id_type=tcin&key=1Kfdqvy6wHmvJ4LDyAVOl7saCBoKHcSb";
+          $.ajax({
+            url: postURL,
+            dataType: 'jsonp',
+            success: function(data){
+              console.log(data)
+              targetLink = data.product_composite_response.items[0].data_page_link;
+              linksArray.push(targetLink);
+              $("#searchField").val(linksArray)
+            }
+          });
+        }
+        else
+          $("#searchField").val(linksArray)
+      });
+    });
+
+    //Add phrase functionality (AJAX)
+
+    $('#newLink').keyup(function(e){
+      if(e.keyCode == 13)
+        $('#add').trigger('click');
+    })
+
+    $("#add").click(function(){    
+      newPhrase = $("#newPhrase").val();
+      newLink = $("#newLink").val();
+      postURL = "/api/add/" + newPhrase + "/" + encodeURIComponent(newLink);
+      $("#newLink").val("");
+
+      if(newPhrase.length != 0 && newLink.length != 0) 
+        $.post( postURL, function( data ) {
+          console.log(data)
+        });
+    })
+
+    //Add voting functionality (AJAX)
+    $("#inc").click(function(){    
+      newPhrase = $("#votePhrase").val();
+      newLink = $("#voteLink").val();
+      voteChange = $("#vote").val();
+      postURL = "/api/vote/" + newPhrase + "/" + encodeURIComponent(newLink) + "/" + voteChange;
+
+      $.ajax({
+        url: postURL,
+        type: 'PUT',
+        success: function(result) {
+          console.log(result);
+        }
+      });
+    })
+
+  </script>
+
+  <h3>All Data</h3>
+  <div id="container"></div>
+
+  <script type="text/javascript">
+  $(function(){
+    $.getJSON("/api/", function(data){
+      console.log(data);
+      data.forEach(function(linksys){
+        $('#container').append("<h4>" + linksys.phrase + "</h4>")
+        linksys.links.forEach(function(item){
+          $('#container').append("<li>" + item.link + " | " + item.votes + "</li>");
+        });
+      });
+    });
+  })
+  </script>
+</body>
